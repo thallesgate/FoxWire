@@ -1,3 +1,4 @@
-__pycache__/
-*.pyc
-*.pyo
+# Compilação, dlls...
+**/__pycache__/
+*.py[cod]
+*$py.class
