@@ -1,4 +1,8 @@
-#include <stdint.h>
+#pragma once
+#include <Arduino.h>
+
+// Importa somente uma vez esse arquivo header
+// Inclui a biblioteca arduino para utilizar as funções padrões básicas para teste
 
 //---------------------------------------------------------------------------------
 // Tipos de pacote
@@ -7,6 +11,11 @@
 #define FXW__WRITE   ( 0x80 | (2<<5) )
 #define FXW__SPECIAL ( 0x80 | (3<<5) )
 //---------------------------------------------------------------------------------
+
+// Direciona o código original somente para o ATmega328
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
+
+#include <stdint.h>
 
 //---------------------------------------------------------------------------------
 // Temporização
@@ -251,5 +260,10 @@ uint8_t FoxWire_pack_write(uint8_t addr, uint8_t data1, uint8_t data2 ) {
 }
 //---------------------------------------------------------------------------------
 
+// Implementação para o RP2040
+#elif defined(ARDUINO_ARCH_RP2040)
+#else
 
-
+// Falhar com outras arquiteturas
+#error "FoxWire: Arquitetura do MCU não suportada. Somente ATmega328 e RP2040."
+#endif
