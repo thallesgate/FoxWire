@@ -272,9 +272,11 @@ namespace foxwire_rp2040 {
   // Classe para deixar os comandos mais proximos do estilo padrão do arduino (pelo menos que eu vejo por ai)
   class FoxWireDevice {
     // Temporização
-    static constexpr float BIT_F = 1'000'000.0f / BAUD;               // µs
+    static constexpr float BIT_F = 1'000'000.0f / BAUD; // µs
     static constexpr uint32_t BIT_US  = static_cast<uint32_t>(BIT_F + 0.5f);
     static constexpr uint32_t HALF_US = BIT_US >> 1;
+
+    static constexpr uint32_t espera_teste = 12; // Tempo de espera (em µs) do bit start de teste
 
     static inline void wait_us(uint32_t us) {
         uint32_t start = micros();
@@ -292,18 +294,44 @@ namespace foxwire_rp2040 {
     }
     // FOX Write
     static void write(uint8_t data) {
+      //Tirar os interrupts
+      //Definir o pino como saida
+      //lançar o start bit (0)
+      //esperar o bit us
+      //usar o digitalwrite padrao pra enviar os bits
+      //lançar o end bit (1)
+      //definir pinmode dnv
+      //reativar os interruopts
     }
     // FOX Read
     static uint16_t read(uint32_t timeout_us = 0) {
+      //seguir mesma receita de bolo acima?
     }
     // FOX Check
     static uint8_t check(uint8_t addr) {
+      // aqui vou precisar do write e do read
     }
     // FOX Read
     static uint8_t packRead(uint8_t addr, uint8_t reg) {
+      noInterrupts();           // Pra não dar problema de concorrencia
+      write(FXW__READ | addr);  // Inicia a comunicação no endereço certo
+      wait_us(espera_teste);    // Aguarda o tempo do bit de start
+      write(reg);               // Envia o endereço do registro que a gente quer
+      uint8_t ret = read();     // Lê o dado
+      interrupts();             // Libera os interrupts dnv
+      return ret;               // Retorna o dado lido
     }
     // FOX Write
     static uint8_t packWrite(uint8_t addr, uint8_t data1, uint8_t data2) {
+      noInterrupts();           // Pra não dar problema de concorrencia
+      write(FXW__WRITE | addr); // Inicia a comunicação no endereço certo
+      wait_us(espera_teste);    // Aguarda o tempo do bit de start
+      write(data1);             // Envia o dado 1
+      wait_us(espera_teste);    // Aguarda o tempo do bit de start
+      write(data2);             // Envia o dado 2
+      uint8_t ret = read();     // Lê o dado
+      interrupts();             // Libera os interrupts dnv
+      return ret;
     }
   };
 } // fim do namespace foxwire_rp2040
