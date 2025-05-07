@@ -262,8 +262,73 @@ uint8_t FoxWire_pack_write(uint8_t addr, uint8_t data1, uint8_t data2 ) {
 
 // Implementação para o RP2040
 #elif defined(ARDUINO_ARCH_RP2040)
-#else
 
+// Namespace pra separar bonitinho
+namespace foxwire_rp2040 {
+  template<uint8_t BUS_PIN,
+           uint32_t BAUD = 115200,
+           bool INTERNAL_PULLUP = true>
+
+  // Classe para deixar os comandos mais proximos do estilo padrão do arduino (pelo menos que eu vejo por ai)
+  class FoxWireDevice {
+    // Temporização
+    static constexpr float BIT_F = 1'000'000.0f / BAUD;               // µs
+    static constexpr uint32_t BIT_US  = static_cast<uint32_t>(BIT_F + 0.5f);
+    static constexpr uint32_t HALF_US = BIT_US >> 1;
+
+    static inline void wait_us(uint32_t us) {
+        uint32_t start = micros();
+        while (static_cast<uint32_t>(micros() - start) < us) { }
+    }
+  
+  public:
+    // Inicializacao
+    static void begin() {
+        if (INTERNAL_PULLUP)
+            pinMode(BUS_PIN, INPUT_PULLUP);
+        else
+            pinMode(BUS_PIN, INPUT);
+        wait_us(100);
+    }
+    // FOX Write
+    static void write(uint8_t data) {
+    }
+    // FOX Read
+    static uint16_t read(uint32_t timeout_us = 0) {
+    }
+    // FOX Check
+    static uint8_t check(uint8_t addr) {
+    }
+    // FOX Read
+    static uint8_t packRead(uint8_t addr, uint8_t reg) {
+    }
+    // FOX Write
+    static uint8_t packWrite(uint8_t addr, uint8_t data1, uint8_t data2) {
+    }
+  };
+} // fim do namespace foxwire_rp2040
+
+// Mantem o jeito de uso do padrão foxwire pra não quebrar outros codigos
+template<const uint8_t pin> inline void FoxWire_init() {
+  foxwire_rp2040::FoxWireDevice<pin>::begin();
+}
+template<const uint8_t pin> inline void FoxWire_write(uint8_t d) {
+  foxwire_rp2040::FoxWireDevice<pin>::write(d);
+}
+template<const uint8_t pin> inline uint16_t FoxWire_read() {
+  return foxwire_rp2040::FoxWireDevice<pin>::read();
+}
+template<const uint8_t pin> inline uint8_t FoxWire_check(uint8_t a) {
+  return foxwire_rp2040::FoxWireDevice<pin>::check(a);
+}
+template<const uint8_t pin> inline uint8_t FoxWire_pack_read(uint8_t a, uint8_t d) {
+  return foxwire_rp2040::FoxWireDevice<pin>::packRead(a, d);
+}
+template<const uint8_t pin> inline uint8_t FoxWire_pack_write(uint8_t a, uint8_t data1, uint8_t data2) {
+  return foxwire_rp2040::FoxWireDevice<pin>::packWrite(a, data1, data2);
+}
+
+#else
 // Falhar com outras arquiteturas
 #error "FoxWire: Arquitetura do MCU não suportada. Somente ATmega328 e RP2040."
 #endif
