@@ -294,22 +294,58 @@ namespace foxwire_rp2040 {
     }
     // FOX Write
     static void write(uint8_t data) {
-      //Tirar os interrupts
-      //Definir o pino como saida
-      //lançar o start bit (0)
-      //esperar o bit us
-      //usar o digitalwrite padrao pra enviar os bits
-      //lançar o end bit (1)
-      //definir pinmode dnv
-      //reativar os interruopts
+      noInterrupts();
+      pinMode(BUS_PIN, OUTPUT);
+
+      digitalWrite(BUS_PIN, LOW);              // start bit
+      wait_us(BIT_US);
+
+      for (uint8_t i = 0; i < 8; ++i) {
+          digitalWrite(BUS_PIN, (data >> i) & 1);
+          wait_us(BIT_US);
+      }
+
+      digitalWrite(BUS_PIN, HIGH);             // stop bit
+      wait_us(BIT_US);
+
+      if (INTERNAL_PULLUP)
+          pinMode(BUS_PIN, INPUT_PULLUP);
+      else
+          pinMode(BUS_PIN, INPUT);
+      interrupts();
     }
     // FOX Read
     static uint16_t read(uint32_t timeout_us = 0) {
-      //seguir mesma receita de bolo acima?
+      uint32_t t0 = micros();
+      while (digitalRead(BUS_PIN) == HIGH) {
+          if (static_cast<uint32_t>(micros() - t0) >= timeout_us)
+              return 0;                        // timeout
+      }
+
+      noInterrupts();
+      wait_us(HALF_US);                        // mid-start
+
+      uint8_t data = 0;
+      for (uint8_t i = 0; i < 8; ++i) {
+          wait_us(BIT_US);
+          if (digitalRead(BUS_PIN))
+              data |= (1u << i);
+      }
+
+      wait_us(BIT_US);                         // parou
+      bool ok = digitalRead(BUS_PIN);
+      interrupts();
+      return (ok ? 0x100 : 0) | data;
     }
     // FOX Check
     static uint8_t check(uint8_t addr) {
-      // aqui vou precisar do write e do read
+      noInterrupts();
+      write(FXW__CHECK | addr);
+      uint16_t x = read();
+      interrupts();
+      if ((x & 0x100) && ((x & 0x1F) == addr))
+          return ((x >> 5) & 0x07) + 1;
+      return 0;
     }
     // FOX Read
     static uint8_t packRead(uint8_t addr, uint8_t reg) {
